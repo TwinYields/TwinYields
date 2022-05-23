@@ -9,8 +9,12 @@ using System.IO;
 using Newtonsoft.Json;
 using NetTopologySuite.Features;
 //using Deedle;
+using Models;
 using Models.Core;
 using Models.Core.ApsimFile;
+using Models.Core.Run;
+using Models.Storage;
+using System.Collections.Generic;
 
 namespace TwinConsole
 {
@@ -18,7 +22,7 @@ namespace TwinConsole
     {
         static void Main(string[] args)
         {
-            var importPath = @"C:\Users\03080535\TASKDATA_20210603_0159";
+            var importPath = "TASKDATA_20210603_0159";
             var task = new AdaptConverter(importPath);
             
             var field = task.FieldBoundaries();
@@ -27,9 +31,64 @@ namespace TwinConsole
             //var idx = frame.IndexRowsUsing(r => (r.Get("rate0"), r.Get("rate1")));
 
             string apsimxFilePath = @"prototypes/WheatProto.apsimx";
-            Simulations file = FileFormat.ReadFromFile<Simulations>(apsimxFilePath, e => throw e, false);
+            Simulations sims = FileFormat.ReadFromFile<Simulations>(apsimxFilePath, e => throw e, false);
+            Directory.Delete("simulations", true);
+            Directory.CreateDirectory("simulations");
+            //Directory.CreateDirectory("simulations/db");
 
+            //Simulations newSim;
 
+            //Generate simulations from Task files
+            //TODO get dates from Task file
+            var simFiles = new List<string>();
+            foreach (var zone in zones)
+            {
+                var outName = "simulations/wheat_" + zone.Attributes["rate"] + ".apsimx";
+                sims.FindChild<Simulation>().FileName = outName;
+                sims.FindChild<Models.Storage.DataStore>().FileName = outName;
+                var simulation = sims.FindChild<Simulation>();
+
+                //Change timing
+                var clock = simulation.FindChild<Clock>();
+                //clock.StartDate = new System.DateTime(2022, 5, 15, 0, 0, 0);
+                //clock.EndDate = System.DateTime.Now;
+
+                //Modify management actions
+                var simField = simulation.FindChild<Zone>();
+                var managementActions = simField.FindAllChildren<Manager>();
+                foreach (var action in managementActions)
+                {
+                    switch (action.Name)
+                    {
+                        case "SowingFertiliser":
+                            action.Parameters[0] = new KeyValuePair<string, string>("Amount", zone.Attributes["rate"].ToString()); //TODO check units and match fertilizer types
+                            break;
+                        case "Sow on a fixed date":
+                            action.Parameters[1] = new KeyValuePair<string, string>("SowDate", "23-May");
+                            break;
+                        default:
+                            break;
+                    }
+
+                    //Console.WriteLine(action.Name);
+                }
+
+                //Using CustomFileName like this leads to no db output
+                //sims.FindChild<Models.Storage.DataStore>().CustomFileName = "simulations/db/wheat_" + zone.Attributes["rate"] + ".apsimx";
+                sims.FileName = outName;
+                var json = FileFormat.WriteToString(sims);
+                File.WriteAllText(outName, json);
+                simFiles.Add(outName);
+            }
+
+            //Run the simFiles
+            foreach (var simF in simFiles)
+            {
+                Runner runner = new Runner(simF);
+                runner.Run();
+            }
+
+            //Serialize the zones to GeoJSON
             var serializer = GeoJsonSerializer.Create();
             string geoJson;
             using (var stringWriter = new StringWriter())
@@ -42,7 +101,7 @@ namespace TwinConsole
 
 
 
-            Console.WriteLine("Hello World!");
+            Console.WriteLine("End");
 
         }
     }
