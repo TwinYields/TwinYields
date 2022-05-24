@@ -2,7 +2,8 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
+    <LangVersion>10</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,8 +23,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="APSIM.Shared">
+      <HintPath>..\..\ApsimX\bin\Debug\netcoreapp3.1\APSIM.Shared.dll</HintPath>
+    </Reference>
     <Reference Include="Models">
-      <HintPath>..\..\..\..\git\TwinYields\ApsimX\bin\Debug\netcoreapp3.1\Models.dll</HintPath>
+      <HintPath>..\..\ApsimX\bin\Debug\netcoreapp3.1\Models.dll</HintPath>
     </Reference>
   </ItemGroup>
 
