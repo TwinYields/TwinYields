@@ -22,13 +22,4 @@
 		<ProjectReference Include="..\TwinYields\TwinYields.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="APSIM.Shared">
-      <HintPath>..\..\ApsimX\bin\Debug\netcoreapp3.1\APSIM.Shared.dll</HintPath>
-    </Reference>
-    <Reference Include="Models">
-      <HintPath>..\..\ApsimX\bin\Debug\netcoreapp3.1\Models.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>
