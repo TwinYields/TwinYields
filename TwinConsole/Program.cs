@@ -27,8 +27,9 @@ namespace TwinConsole
             
             var field = task.FieldBoundaries();
             var zones = task.PrescriptionZones();
-            var frame = task.PrescriptionFrame();
+            //var frame = task.PrescriptionFrame();
             //var idx = frame.IndexRowsUsing(r => (r.Get("rate0"), r.Get("rate1")));
+            var operations = task.GroupOperations();
 
             string apsimxFilePath = @"prototypes/WheatProto.apsimx";
             Simulations sims = FileFormat.ReadFromFile<Simulations>(apsimxFilePath, e => throw e, false);

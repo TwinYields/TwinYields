@@ -24,7 +24,6 @@ namespace TwinYields
             var isoxmlPlugin = new AgGateway.ADAPT.ISOv4Plugin.Plugin();
             this.dataModel = isoxmlPlugin.Import(importPath)[0];
         }
-
         public Polygon FieldBoundaries()
         {
 	        var bounds = this.dataModel.Catalog.FieldBoundaries.First().SpatialData.Polygons.First();
@@ -102,6 +101,30 @@ namespace TwinYields
 
             return features;
         }
+        public List<List<OperationData>> GroupOperations()
+        {
+            IEnumerable<OperationData> operationData = dataModel.Documents.LoggedData.First().OperationData;
+            var handled = new List<int>();
+            var groupedData = new List<List<OperationData>>();
+            foreach (var opdata in operationData)
+            {
+                if (handled.Contains(opdata.Id.ReferenceId))
+                {
+                    continue;
+                }
+                else
+                {
+                    var operations = new List<OperationData>();
+                    operations.Add(opdata);
+                    var r0 = operationData.Where(x => x.CoincidentOperationDataIds.Contains(opdata.Id.ReferenceId)).ToList();
+                    operations.AddRange(r0);
+                    handled.AddRange(opdata.CoincidentOperationDataIds);
+                    groupedData.Add(operations);
+                }
+            }
+
+            return groupedData;
+        }
         public Frame<int,  String> PrescriptionFrame()
         {
             var field = this.FieldBoundaries();
@@ -175,7 +198,6 @@ namespace TwinYields
 
 
         }
-
 
     }
 }
