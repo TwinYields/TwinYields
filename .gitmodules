@@ -1,0 +1,4 @@
+[submodule "ApsimX"]
+	path = ApsimX
+	url = git@github.com:TwinYields/ApsimX.git
+	branch = twin_models
