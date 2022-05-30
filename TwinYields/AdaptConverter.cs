@@ -9,195 +9,195 @@ using NetTopologySuite;
 using NetTopologySuite.Features;
 using Deedle;
 
-namespace TwinYields
+
+namespace TwinYields;
+
+public class AdaptConverter
 {
-    public class AdaptConverter
+    public ApplicationDataModel dataModel;
+    private GeometryFactory gf = NtsGeometryServices.Instance.CreateGeometryFactory(4326);
+    public AdaptConverter(ApplicationDataModel dataModel)
     {
-        public ApplicationDataModel dataModel;
-        private GeometryFactory gf = NtsGeometryServices.Instance.CreateGeometryFactory(4326);
-        public AdaptConverter(ApplicationDataModel dataModel)
-        {
-            this.dataModel = dataModel;
-        }
-        public AdaptConverter(string importPath)
-        {
-            var isoxmlPlugin = new AgGateway.ADAPT.ISOv4Plugin.Plugin();
-            this.dataModel = isoxmlPlugin.Import(importPath)[0];
-        }
-        public Polygon FieldBoundaries()
-        {
-	        var bounds = this.dataModel.Catalog.FieldBoundaries.First().SpatialData.Polygons.First();
-	        var fieldCoords = new List<Coordinate>();
-	        foreach (var pnt in bounds.ExteriorRing.Points)
-		        fieldCoords.Add(new Coordinate(pnt.X, pnt.Y));
-	        var field = gf.CreatePolygon(fieldCoords.ToArray());
-	        //field.UserData = "Jokioinen";
-	        return field;
-        }
-        public FeatureCollection PrescriptionZones()
-        {
-            var field = this.FieldBoundaries();
-            var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
-            var uniqueRates = p.Rates.Select(x => x.RxRates[0].Rate).Distinct();
+        this.dataModel = dataModel;
+    }
+    public AdaptConverter(string importPath)
+    {
+        var isoxmlPlugin = new AgGateway.ADAPT.ISOv4Plugin.Plugin();
+        this.dataModel = isoxmlPlugin.Import(importPath)[0];
+    }
+    public Polygon FieldBoundaries()
+    {
+        var bounds = this.dataModel.Catalog.FieldBoundaries.First().SpatialData.Polygons.First();
+        var fieldCoords = new List<Coordinate>();
+        foreach (var pnt in bounds.ExteriorRing.Points)
+            fieldCoords.Add(new Coordinate(pnt.X, pnt.Y));
+        var field = gf.CreatePolygon(fieldCoords.ToArray());
+        //field.UserData = "Jokioinen";
+        return field;
+    }
+    public FeatureCollection PrescriptionZones()
+    {
+        var field = this.FieldBoundaries();
+        var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
+        var uniqueRates = p.Rates.Select(x => x.RxRates[0].Rate).Distinct();
 
-            var zones = new Dictionary<double, List<Polygon>>();
-            foreach (var rate in uniqueRates)
-                zones.Add(rate, new List<Polygon>());
+        var zones = new Dictionary<double, List<Polygon>>();
+        foreach (var rate in uniqueRates)
+            zones.Add(rate, new List<Polygon>());
 
-            //var zones = new List<Polygon>[uniqueRates.Count];
-            //for (int i = 0; i < uniqueRates.Count; i++)
-            //    zones[i] = new List<Polygon>();
+        //var zones = new List<Polygon>[uniqueRates.Count];
+        //for (int i = 0; i < uniqueRates.Count; i++)
+        //    zones[i] = new List<Polygon>();
 
-            var x0 = p.Origin.X;
-            var y0 = p.Origin.Y;
-            var sx = p.CellWidth.Value.Value;
-            var sy = p.CellHeight.Value.Value;
-            int r = 0;
-            int c = 0;
-            var N = p.Rates.Count();
-            //Convert from raster to coordinates
-            for (int i = 0; i < N; i++)
+        var x0 = p.Origin.X;
+        var y0 = p.Origin.Y;
+        var sx = p.CellWidth.Value.Value;
+        var sy = p.CellHeight.Value.Value;
+        int r = 0;
+        int c = 0;
+        var N = p.Rates.Count();
+        //Convert from raster to coordinates
+        for (int i = 0; i < N; i++)
+        {
+            var x1 = x0 + c * sx;
+            var y1 = y0 + r * sy;
+            var x2 = x0 + (c + 1) * sx;
+            var y2 = y0 + (r + 1) * sy;
+
+            var poly = gf.CreatePolygon(new[] {
+                new Coordinate(x1, y1),
+                new Coordinate(x1, y2),
+                new Coordinate(x2, y2),
+                new Coordinate(x2, y1),
+                new Coordinate(x1, y1),
+            });
+
+            if (field.Contains(poly))
             {
-                var x1 = x0 + c * sx;
-                var y1 = y0 + r * sy;
-                var x2 = x0 + (c + 1) * sx;
-                var y2 = y0 + (r + 1) * sy;
-
-                var poly = gf.CreatePolygon(new[] {
-                        new Coordinate(x1, y1),
-                        new Coordinate(x1, y2),
-                        new Coordinate(x2, y2),
-                        new Coordinate(x2, y1),
-                        new Coordinate(x1, y1),
-                });
-
-                if (field.Contains(poly))
-                {
-                    //var uidx = uniqueRates.FindIndex(0, uniqueRates.Count, x => x == p.Rates[i].RxRates[0].Rate);
-                    //zones[uidx].Add(poly);
-                    zones[p.Rates[i].RxRates[0].Rate].Add(poly);
-                }
-
-                if (c == p.ColumnCount - 1)
-                {
-                    c = 0;
-                    r++;
-                }
-                else
-                {
-                    c++;
-                }
+                //var uidx = uniqueRates.FindIndex(0, uniqueRates.Count, x => x == p.Rates[i].RxRates[0].Rate);
+                //zones[uidx].Add(poly);
+                zones[p.Rates[i].RxRates[0].Rate].Add(poly);
             }
 
-            //Simplify zones and build featurecollection
-            var features = new FeatureCollection();
-            foreach (var rate in zones.Keys)
+            if (c == p.ColumnCount - 1)
             {
-                var att = new AttributesTable();
-                att.Add("rate", rate);
-                var geom = gf.CreateGeometryCollection(zones[rate].ToArray()).Union();
-                features.Add(new Feature(geom, att));
+                c = 0;
+                r++;
             }
-
-            return features;
-        }
-        public List<List<OperationData>> GroupOperations()
-        {
-            IEnumerable<OperationData> operationData = dataModel.Documents.LoggedData.First().OperationData;
-            var handled = new List<int>();
-            var groupedData = new List<List<OperationData>>();
-            foreach (var opdata in operationData)
+            else
             {
-                if (handled.Contains(opdata.Id.ReferenceId))
-                {
-                    continue;
-                }
-                else
-                {
-                    var operations = new List<OperationData>();
-                    operations.Add(opdata);
-                    var r0 = operationData.Where(x => x.CoincidentOperationDataIds.Contains(opdata.Id.ReferenceId)).ToList();
-                    operations.AddRange(r0);
-                    handled.AddRange(opdata.CoincidentOperationDataIds);
-                    groupedData.Add(operations);
-                }
+                c++;
             }
-
-            return groupedData;
         }
-        public Frame<int,  String> PrescriptionFrame()
+
+        //Simplify zones and build featurecollection
+        var features = new FeatureCollection();
+        foreach (var rate in zones.Keys)
         {
-            var field = this.FieldBoundaries();
-            var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
+            var att = new AttributesTable();
+            att.Add("rate", rate);
+            var geom = gf.CreateGeometryCollection(zones[rate].ToArray()).Union();
+            features.Add(new Feature(geom, att));
+        }
+
+        return features;
+    }
+    public List<List<OperationData>> GroupOperations()
+    {
+        IEnumerable<OperationData> operationData = dataModel.Documents.LoggedData.First().OperationData;
+        var handled = new List<int>();
+        var groupedData = new List<List<OperationData>>();
+        foreach (var opdata in operationData)
+        {
+            if (handled.Contains(opdata.Id.ReferenceId))
+            {
+                continue;
+            }
+            else
+            {
+                var operations = new List<OperationData>();
+                operations.Add(opdata);
+                var r0 = operationData.Where(x => x.CoincidentOperationDataIds.Contains(opdata.Id.ReferenceId)).ToList();
+                operations.AddRange(r0);
+                handled.AddRange(opdata.CoincidentOperationDataIds);
+                groupedData.Add(operations);
+            }
+        }
+
+        return groupedData;
+    }
+    public Frame<int,  String> PrescriptionFrame()
+    {
+        var field = this.FieldBoundaries();
+        var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
         
-            var x0 = p.Origin.X;
-            var y0 = p.Origin.Y;
-            var sx = p.CellWidth.Value.Value;
-            var sy = p.CellHeight.Value.Value;
-            int r = 0;
-            int c = 0;
-            var N = p.Rates.Count();
+        var x0 = p.Origin.X;
+        var y0 = p.Origin.Y;
+        var sx = p.CellWidth.Value.Value;
+        var sy = p.CellHeight.Value.Value;
+        int r = 0;
+        int c = 0;
+        var N = p.Rates.Count();
 
-            var rows = new List<KeyValuePair<int, Series<string, object>>>();
-            //Convert from raster to coordinates
-            for (int i = 0; i < N; i++)
+        var rows = new List<KeyValuePair<int, Series<string, object>>>();
+        //Convert from raster to coordinates
+        for (int i = 0; i < N; i++)
+        {
+            var x1 = x0 + c * sx;
+            var y1 = y0 + r * sy;
+            var x2 = x0 + (c + 1) * sx;
+            var y2 = y0 + (r + 1) * sy;
+
+            var poly = gf.CreatePolygon(new[] {
+                new Coordinate(x1, y1),
+                new Coordinate(x1, y2),
+                new Coordinate(x2, y2),
+                new Coordinate(x2, y1),
+                new Coordinate(x1, y1),
+            });
+
+            if (field.Contains(poly))
             {
-                var x1 = x0 + c * sx;
-                var y1 = y0 + r * sy;
-                var x2 = x0 + (c + 1) * sx;
-                var y2 = y0 + (r + 1) * sy;
-
-                var poly = gf.CreatePolygon(new[] {
-                        new Coordinate(x1, y1),
-                        new Coordinate(x1, y2),
-                        new Coordinate(x2, y2),
-                        new Coordinate(x2, y1),
-                        new Coordinate(x1, y1),
-                });
-
-                if (field.Contains(poly))
+                var sb = new SeriesBuilder<string>();
+                sb.Add("geom", poly);
+                int ridx = 0;
+                foreach (var rate in p.Rates[i].RxRates)
                 {
-                    var sb = new SeriesBuilder<string>();
-                    sb.Add("geom", poly);
-                    int ridx = 0;
-                    foreach (var rate in p.Rates[i].RxRates)
-                    {
-                        sb.Add("rate" + ridx, rate.Rate);
-                        ridx++;
-                    }
-                    var series = KeyValue.Create(i, sb.Series);
-                    rows.Add(series);
+                    sb.Add("rate" + ridx, rate.Rate);
+                    ridx++;
                 }
-
-                if (c == p.ColumnCount - 1)
-                {
-                    c = 0;
-                    r++;
-                }
-                else
-                {
-                    c++;
-                }
+                var series = KeyValue.Create(i, sb.Series);
+                rows.Add(series);
             }
 
-            //var rowsB = Enumerable.Range(0, 100).Select(i => {
-                // Build each row using series builder & return 
-                // KeyValue representing row key with row data
-           //     var sb = new SeriesBuilder<string>();
-           //     sb.Add("Index", i);
-           //     sb.Add("Sin", Math.Sin(i / 100.0));
-           //     sb.Add("Cos", Math.Cos(i / 100.0));
-           //     return KeyValue.Create(i, sb.Series);
-           // });
-
-            return Frame.FromRows(rows);
-            // Turn sequence of row information into data frame
-
-
-            //var frame = Frame.FromRows(rows);
-
-
+            if (c == p.ColumnCount - 1)
+            {
+                c = 0;
+                r++;
+            }
+            else
+            {
+                c++;
+            }
         }
+
+        //var rowsB = Enumerable.Range(0, 100).Select(i => {
+        // Build each row using series builder & return 
+        // KeyValue representing row key with row data
+        //     var sb = new SeriesBuilder<string>();
+        //     sb.Add("Index", i);
+        //     sb.Add("Sin", Math.Sin(i / 100.0));
+        //     sb.Add("Cos", Math.Cos(i / 100.0));
+        //     return KeyValue.Create(i, sb.Series);
+        // });
+
+        return Frame.FromRows(rows);
+        // Turn sequence of row information into data frame
+
+
+        //var frame = Frame.FromRows(rows);
+
 
     }
+
 }

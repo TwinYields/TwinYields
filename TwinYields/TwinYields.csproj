@@ -15,4 +15,9 @@
     <PackageReference Include="NetTopologySuite.Features" Version="2.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ApsimX\APSIM.Shared\APSIM.Shared.csproj" />
+    <ProjectReference Include="..\ApsimX\Models\Models.csproj" />
+  </ItemGroup>
+
 </Project>
