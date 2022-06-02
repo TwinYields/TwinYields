@@ -1,23 +1,42 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
 	<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 	<LangVersion>10</LangVersion>
+    <UserSecretsId>b7b39f68-5bc0-4503-b1d2-0ab06f724906</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="AgGatewayADAPTFramework" Version="2.8.1" />
     <PackageReference Include="AgGatewayISOPlugin" Version="4.2.0" />
     <PackageReference Include="Deedle" Version="2.5.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
     <PackageReference Include="NetTopologySuite" Version="2.4.0" />
     <PackageReference Include="NetTopologySuite.Features" Version="2.1.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.4" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.Design" Version="1.1.0" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="6.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ApsimX\APSIM.Shared\APSIM.Shared.csproj" />
     <ProjectReference Include="..\ApsimX\Models\Models.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DB\Models" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="appsettings.json" />
   </ItemGroup>
 
 </Project>

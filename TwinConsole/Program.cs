@@ -15,6 +15,8 @@ using Models.Core.ApsimFile;
 using Models.Core.Run;
 using Models.Storage;
 using System.Collections.Generic;
+using TwinYields.DB.Models;
+using Zone = TwinYields.DB.Models.Zone;
 
 namespace TwinConsole;
 
@@ -31,11 +33,29 @@ class Program
         //var frame = task.PrescriptionFrame();
         //var idx = frame.IndexRowsUsing(r => (r.Get("rate0"), r.Get("rate1")));
         var operations = task.GroupOperations();
-
+        
+        Console.WriteLine("Done with taskfile");
+        
+        //Init database
+        using var db = new TwinYields.DB.TwinYieldsContext();
+        var smartfarm = new Farm {Name = "Luke Smart Farm"};
+        db.Add(smartfarm);
+        var dbfield = new Field { Farm = smartfarm, Geometry = field, Name = "RVIII" }; 
+        db.Add(dbfield);
+        foreach (var z in zones)
+        {
+            db.Add(new Zone {
+                Field = dbfield, Geometry = z.Geometry, Crop = "Wheat",
+            });
+        }
+        db.SaveChanges();
+        
+        Console.WriteLine("Done with DB");
+        
         //Convert to APSIM simulations
         Directory.Delete("simulations", true);
         Directory.CreateDirectory("simulations");
-        
+
         string protopath = @"prototypes/WheatProto.apsimx";
         string outName = "simulations/wheat_zones.apsimx";
         var sb = new APSIMBuilder();
