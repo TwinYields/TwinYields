@@ -4,6 +4,7 @@ using NetTopologySuite.Features;
 using Models;
 using Models.Core;
 using Models.Core.ApsimFile;
+using Models.Climate;
 
 namespace TwinYields;
 
@@ -48,6 +49,9 @@ public class APSIMBuilder
             }
                 
             simField.Name = "zone_" + zone.Attributes["rate"];
+            var weather = simulation.FindChild<Weather>();
+            weather.FileName = @"..\weatherfiles\Dalby.met";
+
             var newSim = simulation.Clone();
             newSim.Name = "zone_" + zone.Attributes["rate"];
             newSim.FileName = outName;

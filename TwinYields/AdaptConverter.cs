@@ -8,7 +8,9 @@ using AgGateway.ADAPT.ApplicationDataModel.Prescriptions;
 using NetTopologySuite;
 using NetTopologySuite.Features;
 using Deedle;
-
+using NetTopologySuite.IO;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace TwinYields;
 
@@ -196,6 +198,20 @@ public class AdaptConverter
 
 
         //var frame = Frame.FromRows(rows);
+
+    }
+
+    public void SaveJSON(FeatureCollection features, string fileName)
+    {
+        var serializer = GeoJsonSerializer.Create();
+        string geoJson;
+        using (var stringWriter = new StringWriter())
+        using (var jsonWriter = new JsonTextWriter(stringWriter))
+        {
+            serializer.Serialize(jsonWriter, features);
+            geoJson = stringWriter.ToString();
+        }
+        File.WriteAllText(fileName, geoJson);
 
 
     }

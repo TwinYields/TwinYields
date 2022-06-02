@@ -17,6 +17,7 @@ using Models.Storage;
 using System.Collections.Generic;
 using TwinYields.DB.Models;
 using Zone = TwinYields.DB.Models.Zone;
+using Microsoft.EntityFrameworkCore;
 
 namespace TwinConsole;
 
@@ -24,69 +25,100 @@ class Program
 {
     static void Main(string[] args)
     {
-        var importPath = "TASKDATA_20210603_0159";
+        string simFile = "simulations/wheat_zones.apsimx";
+        //if (args.Length == 0)
+            simFile = InitializeTwin();
+        Run(simFile);
+        Console.WriteLine("End");
+    }
+
+    static string InitializeTwin()
+    {
+        //var importPath = "TASKDATA_20210603_0159";
+        var importPath = "TASKDATA_20220520_0906";
         var task = new AdaptConverter(importPath);
-        
+
         //Get task properties using ADAPT
         var field = task.FieldBoundaries();
         var zones = task.PrescriptionZones();
+        //Serialize the zones to GeoJSON
+        task.SaveJSON(zones, "geoms/zones.json");
+
         //var frame = task.PrescriptionFrame();
         //var idx = frame.IndexRowsUsing(r => (r.Get("rate0"), r.Get("rate1")));
         var operations = task.GroupOperations();
-        
+
         Console.WriteLine("Done with taskfile");
-        
+
         //Init database
+
         using var db = new TwinYields.DB.TwinYieldsContext();
-        var smartfarm = new Farm {Name = "Luke Smart Farm"};
+        //Truncate at Init
+        db.Database.ExecuteSqlRaw("TRUNCATE \"Farm\" cascade");
+        db.SaveChanges();
+
+        var smartfarm = new Farm { Name = "Luke Smart Farm" };
         db.Add(smartfarm);
-        var dbfield = new Field { Farm = smartfarm, Geometry = field, Name = "RVIII" }; 
+        var dbfield = new Field { Farm = smartfarm, Geometry = field, Name = "RVIII" };
         db.Add(dbfield);
+
         foreach (var z in zones)
         {
-            db.Add(new Zone {
-                Field = dbfield, Geometry = z.Geometry, Crop = "Wheat",
+            db.Add(new Zone
+            {
+                Field = dbfield,
+                Geometry = z.Geometry,
+                Crop = "Wheat",
             });
         }
         db.SaveChanges();
-        
+
         Console.WriteLine("Done with DB");
-        
+
         //Convert to APSIM simulations
-        Directory.Delete("simulations", true);
-        Directory.CreateDirectory("simulations");
+        //Directory.Delete("simulations", true);
+        //Directory.CreateDirectory("simulations");
 
         string protopath = @"prototypes/WheatProto.apsimx";
         string outName = "simulations/wheat_zones.apsimx";
         var sb = new APSIMBuilder();
         var simulations = sb.BuildSimulations(zones, protopath, outName);
         var simFiles = sb.BuildSimulationFiles(zones, protopath);
-      
-        var srunner = new Runner(outName);
-        srunner.Run();
-        srunner.DisposeStorage();
-            
-        //Run the simFiles
-        foreach (var simF in simFiles)
-        {
-            Runner runner = new Runner(simF);
-            runner.Run();
-        }
-
-        //Serialize the zones to GeoJSON
-        var serializer = GeoJsonSerializer.Create();
-        string geoJson;
-        using (var stringWriter = new StringWriter())
-        using (var jsonWriter = new JsonTextWriter(stringWriter))
-        {
-            serializer.Serialize(jsonWriter, zones);
-            geoJson = stringWriter.ToString();
-        }
-        File.WriteAllText("geoms/zones.json", geoJson);
-
-
-
-        Console.WriteLine("End");
+        return outName;
 
     }
+
+    static void Run(string simFile)
+    {
+        Simulations sims = FileFormat.ReadFromFile<Simulations>(simFile, e => throw e, false);
+        //var sim1 = sims.FindChild<Simulation>();
+        //sim1.Run();
+        //var d = data.Reader.GetData("Simulation");
+
+        var srunner = new Runner(sims);
+        srunner.Run();
+        srunner.DisposeStorage();
+
+        var data = sims.FindChild<DataStore>();
+        data.Open();
+        var tables = data.Reader.TableNames;
+        var dt = data.Reader.GetData(tables.First());
+        Console.WriteLine(dt.Rows.Count);
+
+        //var dt2 = data.Reader.GetData("*", "Current", data.Reader.SimulationNames);
+       Console.WriteLine("Done running!");
+
+        
+
+        //Run the simFiles
+        //foreach (var simF in simFiles)
+        //{
+        //    Runner runner = new Runner(simF);
+        //    runner.Run();
+        //}
+
+
+
+    }
+
 }
