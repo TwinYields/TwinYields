@@ -37,17 +37,23 @@ class Program
         //var importPath = "TASKDATA_20210603_0159";
         var importPath = "TASKDATA_20220520_0906";
         var task = new AdaptConverter(importPath);
+        
+        var rates = task.VectorizePrescription();
+        string time = DateTime.Now.ToString("hh_mm_ss");
 
+        GDALUtils.RasterizeFeatureCollection(rates, $"geoms/raster_{time}.tiff");
         //Get task properties using ADAPT
         var field = task.FieldBoundaries();
         var zones = task.PrescriptionZones();
-        var rates = task.VectorizePrescription();
+        
         //Serialize the zones to GeoJSON
-        task.SaveJSON(zones, "geoms/zones.json");
-        task.SaveJSON(field, "geoms/field.json");
+        AdaptConverter.SaveJSON(zones, "geoms/zones.json");
+        AdaptConverter.SaveJSON(field, "geoms/field.json");
         //Can be rasterized using gdal: gdal_rasterize -a rate -ot Int16 -ts 1000 1000 rates.json zones.tif
-        task.SaveJSON(rates, "geoms/rates.json");
+        AdaptConverter.SaveJSON(rates, "geoms/rates.json");
 
+        
+        
         //var frame = task.PrescriptionFrame();
         //var idx = frame.IndexRowsUsing(r => (r.Get("rate0"), r.Get("rate1")));
         var operations = task.GroupOperations();

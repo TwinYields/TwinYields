@@ -11,7 +11,6 @@ using Deedle;
 using NetTopologySuite.IO;
 using System.IO;
 using Newtonsoft.Json;
-
 namespace TwinYields;
 
 public class AdaptConverter
@@ -90,6 +89,13 @@ public class AdaptConverter
 
         return rates;
     }
+
+    public void RasterizePrescription()
+    {
+        var rates = this.VectorizePrescription();
+        var json = AdaptConverter.ToJSON(rates);
+    }
+
     public FeatureCollection PrescriptionZones()
     {
         var field = this.FieldBoundaries();
@@ -254,7 +260,20 @@ public class AdaptConverter
 
     }
 
-    public void SaveJSON(Polygon features, string fileName)
+    public static string ToJSON(FeatureCollection features)
+    {
+        var serializer = GeoJsonSerializer.Create();
+        string geoJson;
+        using (var stringWriter = new StringWriter())
+        using (var jsonWriter = new JsonTextWriter(stringWriter))
+        {
+            serializer.Serialize(jsonWriter, features);
+            geoJson = stringWriter.ToString();
+        }
+        return geoJson;
+    }
+
+    public static void SaveJSON(Polygon features, string fileName)
     {
         var serializer = GeoJsonSerializer.Create();
         string geoJson;
@@ -267,19 +286,10 @@ public class AdaptConverter
         File.WriteAllText(fileName, geoJson);
     }
 
-    public void SaveJSON(FeatureCollection features, string fileName)
+    public static void SaveJSON(FeatureCollection features, string fileName)
     {
-        var serializer = GeoJsonSerializer.Create();
-        string geoJson;
-        using (var stringWriter = new StringWriter())
-        using (var jsonWriter = new JsonTextWriter(stringWriter))
-        {
-            serializer.Serialize(jsonWriter, features);
-            geoJson = stringWriter.ToString();
-        }
+        var geoJson = AdaptConverter.ToJSON(features);
         File.WriteAllText(fileName, geoJson);
     }
-
-
 
 }
