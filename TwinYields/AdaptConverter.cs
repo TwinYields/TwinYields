@@ -37,6 +37,59 @@ public class AdaptConverter
         //field.UserData = "Jokioinen";
         return field;
     }
+    public FeatureCollection VectorizePrescription()
+    {
+        var field = this.FieldBoundaries();
+        var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
+
+        var x0 = p.Origin.X;
+        var y0 = p.Origin.Y;
+        var sx = p.CellWidth.Value.Value;
+        var sy = p.CellHeight.Value.Value;
+        int r = 0;
+        int c = 0;
+        var N = p.Rates.Count();
+        var rates = new FeatureCollection();
+        //Convert from raster to coordinates
+        for (int i = 0; i < N; i++)
+        {
+            var x1 = x0 + c * sx;
+            var y1 = y0 + r * sy;
+            var x2 = x0 + (c + 1) * sx;
+            var y2 = y0 + (r + 1) * sy;
+
+            var poly = gf.CreatePolygon(new[] {
+                new Coordinate(x1, y1),
+                new Coordinate(x1, y2),
+                new Coordinate(x2, y2),
+                new Coordinate(x2, y1),
+                new Coordinate(x1, y1),
+            });
+
+            if (field.Contains(poly))
+            {
+                var att = new AttributesTable();
+                for (int ridx = 0; ridx < p.Rates[i].RxRates.Count; ridx++)
+                {
+                    var rate = p.Rates[i].RxRates[ridx].Rate;
+                    att.Add("rate" + ridx.ToString(), rate);
+                }
+                rates.Add(new Feature(poly, att));
+            }
+
+            if (c == p.ColumnCount - 1)
+            {
+                c = 0;
+                r++;
+            }
+            else
+            {
+                c++;
+            }
+        }
+
+        return rates;
+    }
     public FeatureCollection PrescriptionZones()
     {
         var field = this.FieldBoundaries();
@@ -132,7 +185,7 @@ public class AdaptConverter
     {
         var field = this.FieldBoundaries();
         var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
-        
+
         var x0 = p.Origin.X;
         var y0 = p.Origin.Y;
         var sx = p.CellWidth.Value.Value;
@@ -184,7 +237,7 @@ public class AdaptConverter
         }
 
         //var rowsB = Enumerable.Range(0, 100).Select(i => {
-        // Build each row using series builder & return 
+        // Build each row using series builder & return
         // KeyValue representing row key with row data
         //     var sb = new SeriesBuilder<string>();
         //     sb.Add("Index", i);
@@ -201,6 +254,19 @@ public class AdaptConverter
 
     }
 
+    public void SaveJSON(Polygon features, string fileName)
+    {
+        var serializer = GeoJsonSerializer.Create();
+        string geoJson;
+        using (var stringWriter = new StringWriter())
+        using (var jsonWriter = new JsonTextWriter(stringWriter))
+        {
+            serializer.Serialize(jsonWriter, features);
+            geoJson = stringWriter.ToString();
+        }
+        File.WriteAllText(fileName, geoJson);
+    }
+
     public void SaveJSON(FeatureCollection features, string fileName)
     {
         var serializer = GeoJsonSerializer.Create();
@@ -212,8 +278,8 @@ public class AdaptConverter
             geoJson = stringWriter.ToString();
         }
         File.WriteAllText(fileName, geoJson);
-
-
     }
+
+
 
 }

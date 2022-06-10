@@ -41,8 +41,12 @@ class Program
         //Get task properties using ADAPT
         var field = task.FieldBoundaries();
         var zones = task.PrescriptionZones();
+        var rates = task.VectorizePrescription();
         //Serialize the zones to GeoJSON
         task.SaveJSON(zones, "geoms/zones.json");
+        task.SaveJSON(field, "geoms/field.json");
+        //Can be rasterized using gdal: gdal_rasterize -a rate -ot Int16 -ts 1000 1000 rates.json zones.tif
+        task.SaveJSON(rates, "geoms/rates.json");
 
         //var frame = task.PrescriptionFrame();
         //var idx = frame.IndexRowsUsing(r => (r.Get("rate0"), r.Get("rate1")));
@@ -108,7 +112,7 @@ class Program
         //var dt2 = data.Reader.GetData("*", "Current", data.Reader.SimulationNames);
        Console.WriteLine("Done running!");
 
-        
+
 
         //Run the simFiles
         //foreach (var simF in simFiles)
