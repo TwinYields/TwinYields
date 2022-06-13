@@ -89,13 +89,34 @@ public class AdaptConverter
 
         return rates;
     }
-
     public void RasterizePrescription()
     {
         var rates = this.VectorizePrescription();
         var json = AdaptConverter.ToJSON(rates);
     }
-
+    
+    //Separate MultiPolygons and filter out small patches
+    public FeatureCollection SimplifyZones(FeatureCollection zones, double MinSize = 1e-7)
+    {
+        FeatureCollection simplified = new FeatureCollection();
+        foreach (var zn in zones)
+        {
+            if (zn.Geometry.GetType() == typeof(MultiPolygon))
+            {
+                var geoms = (MultiPolygon)zn.Geometry;
+                foreach (var geom in geoms)
+                {
+                    if (geom.Area > MinSize)
+                        simplified.Add(new Feature(geom, zn.Attributes));
+                }
+            }
+            else
+            {
+                simplified.Add(zn);
+            }
+        }
+        return simplified;
+    }
     public FeatureCollection PrescriptionZones()
     {
         var field = this.FieldBoundaries();
@@ -160,6 +181,7 @@ public class AdaptConverter
             var geom = gf.CreateGeometryCollection(zones[rate].ToArray()).Union();
             features.Add(new Feature(geom, att));
         }
+        features = SimplifyZones(features);
 
         return features;
     }
@@ -260,7 +282,7 @@ public class AdaptConverter
 
     }
 
-    public static string ToJSON(FeatureCollection features)
+    public static string ToJSON(object features)
     {
         var serializer = GeoJsonSerializer.Create();
         string geoJson;
@@ -275,14 +297,7 @@ public class AdaptConverter
 
     public static void SaveJSON(Polygon features, string fileName)
     {
-        var serializer = GeoJsonSerializer.Create();
-        string geoJson;
-        using (var stringWriter = new StringWriter())
-        using (var jsonWriter = new JsonTextWriter(stringWriter))
-        {
-            serializer.Serialize(jsonWriter, features);
-            geoJson = stringWriter.ToString();
-        }
+        var geoJson = AdaptConverter.ToJSON(features);
         File.WriteAllText(fileName, geoJson);
     }
 
