@@ -20,25 +20,37 @@ public class AdaptConverter
     public AdaptConverter(ApplicationDataModel dataModel)
     {
         this.dataModel = dataModel;
+        this.FieldBoundary = _FieldBoundary();
     }
     public AdaptConverter(string importPath)
     {
         var isoxmlPlugin = new AgGateway.ADAPT.ISOv4Plugin.Plugin();
         this.dataModel = isoxmlPlugin.Import(importPath)[0];
+        this.FieldBoundary = _FieldBoundary();
     }
-    public Polygon FieldBoundaries()
+    
+    public string FieldName { 
+        get { return dataModel.Catalog.Fields[0].Description; }
+    }
+
+    public Polygon FieldBoundary;
+
+    public string[] Products
+    { 
+        get {return dataModel.Catalog.Products.Select(p => p.Description).ToArray();}
+    }
+    private Polygon _FieldBoundary()
     {
         var bounds = this.dataModel.Catalog.FieldBoundaries.First().SpatialData.Polygons.First();
         var fieldCoords = new List<Coordinate>();
         foreach (var pnt in bounds.ExteriorRing.Points)
             fieldCoords.Add(new Coordinate(pnt.X, pnt.Y));
         var field = gf.CreatePolygon(fieldCoords.ToArray());
-        //field.UserData = "Jokioinen";
         return field;
     }
     public FeatureCollection VectorizePrescription()
     {
-        var field = this.FieldBoundaries();
+        var field = this.FieldBoundary;
         var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
 
         var x0 = p.Origin.X;
@@ -89,10 +101,11 @@ public class AdaptConverter
 
         return rates;
     }
-    public void RasterizePrescription()
+    public void RasterizePrescription(string fileName)
     {
         var rates = this.VectorizePrescription();
         var json = AdaptConverter.ToJSON(rates);
+        GDALUtils.RasterizeFeatureCollection(rates, FieldName);
     }
     
     //Separate MultiPolygons and filter out small patches
@@ -119,7 +132,7 @@ public class AdaptConverter
     }
     public FeatureCollection PrescriptionZones()
     {
-        var field = this.FieldBoundaries();
+        var field = this.FieldBoundary;
         var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
         var uniqueRates = p.Rates.Select(x => x.RxRates[0].Rate).Distinct();
 
@@ -211,7 +224,7 @@ public class AdaptConverter
     }
     public Frame<int,  String> PrescriptionFrame()
     {
-        var field = this.FieldBoundaries();
+        var field = this.FieldBoundary;
         var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
 
         var x0 = p.Origin.X;

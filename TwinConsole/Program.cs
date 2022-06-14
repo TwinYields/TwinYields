@@ -1,50 +1,17 @@
 ﻿using System;
 using TwinYields;
-using AgGateway.ADAPT.ApplicationDataModel.ADM;
 using System.Linq;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
-using NetTopologySuite.IO;
-using System.IO;
-using Newtonsoft.Json;
-using NetTopologySuite.Features;
-//using Deedle;
 using Models;
 using Models.Core;
 using Models.Core.ApsimFile;
 using Models.Core.Run;
 using Models.Storage;
 using System.Collections.Generic;
-//using TwinYields.DB.Models;
-//using Zone = TwinYields.DB.Models.Zone;
-//using Microsoft.EntityFrameworkCore;
-using MongoDB.Driver;
-using MongoDB.Bson;
-using MongoDB.Driver.GeoJsonObjectModel;
-using MongoDB.Bson.Serialization.Attributes;
+using TwinYields.DataBase;
 
 namespace TwinConsole;
-
-public class MongoZone
-{
-    public ObjectId Id { get; set; }
-    public string Name { get; set; }
-    public GeoJsonPolygon<GeoJson2DCoordinates> Geometry { get; set; }
-
-    public MongoZone(string Name, NetTopologySuite.Geometries.Geometry Geometry)
-    {
-        var gf = NtsGeometryServices.Instance.CreateGeometryFactory(4326);
-        int N = Geometry.Coordinates.Count();
-        var mongocrds = new GeoJson2DCoordinates[N];
-        for (int i = 0; i < N; i++)
-        {
-            mongocrds[i] = GeoJson.Position(Geometry.Coordinates[i].X, Geometry.Coordinates[i].Y);
-        }
-        var polygon = GeoJson.Polygon(mongocrds);
-        this.Name = Name;
-        this.Geometry = polygon;
-    }
-}
 
 
 class Program
@@ -54,7 +21,7 @@ class Program
         string simFile = "simulations/wheat_zones.apsimx";
         //if (args.Length == 0)
             simFile = InitializeTwin();
-        Run(simFile);
+        //Run(simFile);
         Console.WriteLine("End");
     }
 
@@ -65,67 +32,46 @@ class Program
         var task = new AdaptConverter(importPath);
         
         var rates = task.VectorizePrescription();
-        string time = DateTime.Now.ToString("hh_mm_ss");
-
-        GDALUtils.RasterizeFeatureCollection(rates, $"geoms/raster_{time}.tiff");
-        //Get task properties using ADAPT
-        var field = task.FieldBoundaries();
+        //string time = DateTime.Now.ToString("hh_mm_ss");
+        //task.RasterizePrescription($"geoms/rasters/{task.FieldName}_{time}.tiff");
         var zones = task.PrescriptionZones();
 
-
-                
         //Serialize the zones to GeoJSON
-        AdaptConverter.SaveJSON(zones, "geoms/zones.json");
-        AdaptConverter.SaveJSON(field, "geoms/field.json");
+        //AdaptConverter.SaveJSON(zones, "geoms/zones.json");
+        //AdaptConverter.SaveJSON(task.FieldBoundary, "geoms/field.json");
         //Can be rasterized using gdal: gdal_rasterize -a rate -ot Int16 -ts 1000 1000 rates.json zones.tif
-        AdaptConverter.SaveJSON(rates, "geoms/rates.json");
+        //AdaptConverter.SaveJSON(rates, "geoms/rates.json");
 
-        MongoClient dbClient = new MongoClient();
-        var db = dbClient.GetDatabase("TwinYields");
-        db.DropCollection("Zones");
-        var collection = db.GetCollection<MongoZone>("Zones");
-        //var mz = new MongoZone("Test1", zones.First().Geometry);
-        var bc = db.GetCollection<BsonDocument>("Zones");
-        var json = AdaptConverter.ToJSON(zones.ElementAt(1));
-        var doc = BsonDocument.Parse(json);
-        bc.InsertOne(doc);
+        //Save field information to database
+
         
-        var mz = new MongoZone("Test1", zones.ElementAt(1).Geometry);
-        //zones.ElementAt(3)
-        collection.InsertOne(mz);
-        bc.InsertOne(BsonDocument.Parse(AdaptConverter.ToJSON(zones)));
 
-        //var frame = task.PrescriptionFrame();
-        //var idx = frame.IndexRowsUsing(r => (r.Get("rate0"), r.Get("rate1")));
-        var operations = task.GroupOperations();
 
-        Console.WriteLine("Done with taskfile");
-
-        //Init database
-        /*
-        using var db = new TwinYields.DB.TwinYieldsContext();
-        //Truncate at Init
-        db.Database.ExecuteSqlRaw("TRUNCATE \"Farm\" cascade");
-        db.SaveChanges();
-
-        var smartfarm = new Farm { Name = "Luke Smart Farm" };
-        db.Add(smartfarm);
-        var dbfield = new Field { Farm = smartfarm, Geometry = field, Name = "RVIII" };
-        db.Add(dbfield);
-
-        foreach (var z in zones)
-        {
-            db.Add(new Zone
-            {
-                Field = dbfield,
-                Geometry = z.Geometry,
-                Crop = "Wheat",
-            });
-        }
-        db.SaveChanges();*/
+        var db = new TwinDataBase();
+        db.DropAll();
+        var farm = new Farm("Jokioinen SmartFarm");
+        db.Insert(farm);
+        var field = new Field(task.FieldName, task.FieldBoundary);
+        field.Zones = zones.Select((z, i) => 
+                            new TwinYields.DataBase.Zone($"zone{i}", 
+                            new double[] { (double)z.Attributes["rate"] }, //TODO get all rates and product types
+                            task.Products,
+                            (Polygon)z.Geometry)).ToList();
+        field.FarmId = farm.Id;
+        db.Insert(field);
 
         Console.WriteLine("Done with DB");
 
+        
+        
+
+        //Test reading
+        //var ofield = db.FindField(task.FieldName);
+
+        //TODO extract variable rates from operations
+        //var operations = task.GroupOperations();
+
+        Console.WriteLine("Done with taskfile");
         //Convert to APSIM simulations
         //Directory.Delete("simulations", true);
         //Directory.CreateDirectory("simulations");
