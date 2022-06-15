@@ -17,16 +17,17 @@ public class APSIMBuilder
         Simulations sims = FileFormat.ReadFromFile<Simulations>(prototype, e => throw e, false);
         //Get original simulation from prototype file
         var simulation = sims.FindChild<Simulation>();
-        
+
         //Clone and modify simulation to match zone features
+        int zoneidx = 0;
         foreach (var zone in zones)
         {
             simulation.FileName = outName;
             sims.FindChild<Models.Storage.DataStore>().FileName = outName;
             //Change timing
             var clock = simulation.FindChild<Clock>();
-            //clock.StartDate = new System.DateTime(2022, 5, 15, 0, 0, 0);
-            //clock.EndDate = System.DateTime.Now;
+            clock.StartDate = new System.DateTime(2022, 04, 01, 0, 0, 0);
+            clock.EndDate = System.DateTime.Now;
 
             //Modify management actions
             var simField = simulation.FindChild<Zone>();
@@ -47,15 +48,17 @@ public class APSIMBuilder
 
                 //Console.WriteLine(action.Name);
             }
-                
-            simField.Name = "zone_" + zone.Attributes["rate"];
+
+            simField.Name = $"zone_{zoneidx}";
             var weather = simulation.FindChild<Weather>();
-            weather.FileName = @"..\weatherfiles\Dalby.met";
+            //weather.FileName = @"..\weatherfiles\Dalby.met";
+            weather.FileName = @"..\weatherfiles\Jokioinen.met";
 
             var newSim = simulation.Clone();
-            newSim.Name = "zone_" + zone.Attributes["rate"];
+            newSim.Name = $"zone_{zoneidx}";
             newSim.FileName = outName;
             sims.Children.Add(newSim);
+            zoneidx++;
         }
         
         //Remove the unmodified simulation

@@ -10,6 +10,7 @@ using Models.Core.Run;
 using Models.Storage;
 using System.Collections.Generic;
 using TwinYields.DataBase;
+using System.IO;
 
 namespace TwinConsole;
 
@@ -20,8 +21,8 @@ class Program
     {
         string simFile = "simulations/wheat_zones.apsimx";
         //if (args.Length == 0)
-            simFile = InitializeTwin();
-        //Run(simFile);
+        simFile = InitializeTwin();
+        Run(simFile);
         Console.WriteLine("End");
     }
 
@@ -44,9 +45,6 @@ class Program
 
         //Save field information to database
 
-        
-
-
         var db = new TwinDataBase();
         db.DropAll();
         var farm = new Farm("Jokioinen SmartFarm");
@@ -61,9 +59,7 @@ class Program
         db.Insert(field);
 
         Console.WriteLine("Done with DB");
-
-        
-        
+       
 
         //Test reading
         //var ofield = db.FindField(task.FieldName);
@@ -74,13 +70,13 @@ class Program
         Console.WriteLine("Done with taskfile");
         //Convert to APSIM simulations
         //Directory.Delete("simulations", true);
-        //Directory.CreateDirectory("simulations");
+        Directory.CreateDirectory("simulations");
 
         string protopath = @"prototypes/WheatProto.apsimx";
         string outName = "simulations/wheat_zones.apsimx";
         var sb = new APSIMBuilder();
         var simulations = sb.BuildSimulations(zones, protopath, outName);
-        var simFiles = sb.BuildSimulationFiles(zones, protopath);
+        //var simFiles = sb.BuildSimulationFiles(zones, protopath);
         return outName;
 
     }
@@ -96,11 +92,12 @@ class Program
         srunner.Run();
         srunner.DisposeStorage();
 
-        var data = sims.FindChild<DataStore>();
-        data.Open();
-        var tables = data.Reader.TableNames;
-        var dt = data.Reader.GetData(tables.First());
-        Console.WriteLine(dt.Rows.Count);
+        //Use this to read the simulated data back
+        //var data = sims.FindChild<DataStore>();
+        //data.Open();
+        //var tables = data.Reader.TableNames;
+        //var dt = data.Reader.GetData(tables.First());
+        //Console.WriteLine(dt.Rows.Count);
 
         //var dt2 = data.Reader.GetData("*", "Current", data.Reader.SimulationNames);
        Console.WriteLine("Done running!");
