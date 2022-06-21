@@ -26,8 +26,8 @@ public class APSIMBuilder
             sims.FindChild<Models.Storage.DataStore>().FileName = outName;
             //Change timing
             var clock = simulation.FindChild<Clock>();
-            //clock.StartDate = new System.DateTime(2022, 05, 01, 0, 0, 0);
-            clock.StartDate = new System.DateTime(1985, 05, 01, 0, 0, 0);
+            clock.StartDate = new System.DateTime(2021, 05, 01, 0, 0, 0);
+            //clock.StartDate = new System.DateTime(1985, 05, 01, 0, 0, 0);
             clock.EndDate = System.DateTime.Today.AddDays(-1);
 
             //Modify management actions
@@ -50,7 +50,7 @@ public class APSIMBuilder
                         break;
                     case "Sow on a fixed date":
                         action.Parameters[1] = new KeyValuePair<string, string>("SowDate", "23-May");
-                        action.Parameters[2] = new KeyValuePair<string, string>("CultivarName", "Yitpi");
+                        action.Parameters[2] = new KeyValuePair<string, string>("CultivarName", "Hartog");
                         break;
                     default:
                         break;
