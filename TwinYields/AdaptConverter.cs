@@ -134,7 +134,17 @@ public class AdaptConverter
     {
         var field = this.FieldBoundary;
         var p = (RasterGridPrescription)dataModel.Catalog.Prescriptions.First();
-        var uniqueRates = p.Rates.Select(x => x.RxRates[0].Rate).Distinct();
+        //For the test task file Fertilized is product No: 2
+        var uniqueRates = p.Rates.Select(x => x.RxRates[1].Rate).Distinct();
+        
+        //Check product names for RxRates
+        //var products = p.ProductIds;
+        //var r1 = p.Rates.First().RxRates[0];
+        //var r2 = p.Rates.First().RxRates[1];
+        //var rxlookup = p.RxProductLookups.Where(rx => rx.Id.ReferenceId == r1.RxProductLookupId).First();
+        //var rxlookup2 = p.RxProductLookups.Where(rx => rx.Id.ReferenceId == r2.RxProductLookupId).First();
+        //var r1name = this.dataModel.Catalog.Products.Where(pr => pr.Id.ReferenceId == rxlookup.ProductId).First().Description;
+        //var r2name = this.dataModel.Catalog.Products.Where(pr => pr.Id.ReferenceId == rxlookup2.ProductId).First().Description;
 
         var zones = new Dictionary<double, List<Polygon>>();
         foreach (var rate in uniqueRates)
@@ -171,7 +181,7 @@ public class AdaptConverter
             {
                 //var uidx = uniqueRates.FindIndex(0, uniqueRates.Count, x => x == p.Rates[i].RxRates[0].Rate);
                 //zones[uidx].Add(poly);
-                zones[p.Rates[i].RxRates[0].Rate].Add(poly);
+                zones[p.Rates[i].RxRates[1].Rate].Add(poly);
             }
 
             if (c == p.ColumnCount - 1)

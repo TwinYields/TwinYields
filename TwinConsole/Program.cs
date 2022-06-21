@@ -83,6 +83,7 @@ class Program
 
     static void Run(string simFile)
     {
+        Console.WriteLine("Running simulations!");
         Simulations sims = FileFormat.ReadFromFile<Simulations>(simFile, e => throw e, false);
         //var sim1 = sims.FindChild<Simulation>();
         //sim1.Run();

@@ -26,21 +26,31 @@ public class APSIMBuilder
             sims.FindChild<Models.Storage.DataStore>().FileName = outName;
             //Change timing
             var clock = simulation.FindChild<Clock>();
-            clock.StartDate = new System.DateTime(2022, 04, 01, 0, 0, 0);
-            clock.EndDate = System.DateTime.Now;
+            //clock.StartDate = new System.DateTime(2022, 05, 01, 0, 0, 0);
+            clock.StartDate = new System.DateTime(1985, 05, 01, 0, 0, 0);
+            clock.EndDate = System.DateTime.Today.AddDays(-1);
 
             //Modify management actions
             var simField = simulation.FindChild<Zone>();
             var managementActions = simField.FindAllChildren<Manager>();
+            var fertilizer_kg = (double)zone.Attributes["rate"];
             foreach (var action in managementActions)
             {
                 switch (action.Name)
                 {
-                    case "SowingFertiliser":
-                        action.Parameters[0] = new KeyValuePair<string, string>("Amount", zone.Attributes["rate"].ToString()); //TODO check units and match fertilizer types
+                    case "SowingFertilizerNO3":
+                        //TODO get fertilizer specific values from DB
+                        //https://www.yara.fi/lannoitus/lannoitteet/yarabela/yarabela-suomensalpietari/
+                        var NO3kg = 0.122 * fertilizer_kg;
+                        action.Parameters[2] = new KeyValuePair<string, string>("Amount", NO3kg.ToString());
+                        break;
+                    case "SowingFertilizerNH4":
+                        var NH4kg = 0.146 * fertilizer_kg;
+                        action.Parameters[2] = new KeyValuePair<string, string>("Amount", NH4kg.ToString());
                         break;
                     case "Sow on a fixed date":
                         action.Parameters[1] = new KeyValuePair<string, string>("SowDate", "23-May");
+                        action.Parameters[2] = new KeyValuePair<string, string>("CultivarName", "Yitpi");
                         break;
                     default:
                         break;
@@ -52,7 +62,8 @@ public class APSIMBuilder
             simField.Name = $"zone_{zoneidx}";
             var weather = simulation.FindChild<Weather>();
             //weather.FileName = @"..\weatherfiles\Dalby.met";
-            weather.FileName = @"..\weatherfiles\Jokioinen.met";
+            //weather.FileName = @"..\weatherfiles\Jokioinen.met";
+            weather.FileName = @"..\weatherfiles\Jokioinen_1985.met";
 
             var newSim = simulation.Clone();
             newSim.Name = $"zone_{zoneidx}";
