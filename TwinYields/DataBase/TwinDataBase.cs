@@ -9,6 +9,8 @@ using MongoDB.Driver.GeoJsonObjectModel;
 using MongoDB.Bson.Serialization.Attributes;
 using NetTopologySuite;
 using NetTopologySuite.Geometries;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Conventions;
 
 namespace TwinYields.DataBase;
 
@@ -21,6 +23,14 @@ public class TwinDataBase
     {
         dbClient = new MongoClient();
         db = (MongoDatabaseBase)dbClient.GetDatabase("TwinYields");
+        var pack = new ConventionPack();
+        pack.AddMemberMapConvention(
+            "LowerCaseElementName",
+            m => m.SetElementName(m.MemberName.ToLower()));
+        ConventionRegistry.Register("TwinYields conventions",
+            pack,
+            t => true
+            );
     }
 
     //Drop all all collections 
@@ -56,6 +66,7 @@ public class TwinDataBase
 
 }
 
+
 public static class GeoConverters{
     public static GeoJsonPolygon<GeoJson2DCoordinates> NtsPolygonToMongo(Polygon poly)
     {
@@ -85,7 +96,7 @@ public class Field
     public ObjectId Id { get; set; }
     public string Name { get; set; }
     public GeoJsonPoint<GeoJson2DCoordinates> Location { get; set; }
-    public GeoJsonPolygon<GeoJson2DCoordinates> Boundary { get; set; }
+    public GeoJsonPolygon<GeoJson2DCoordinates> Geometry { get; set; }
 
     public List<Zone> Zones;
     public ObjectId FarmId { get;set;}
@@ -93,7 +104,7 @@ public class Field
     public Field(string Name, NetTopologySuite.Geometries.Polygon boundary)
     {
         this.Name = Name;
-        this.Boundary = GeoConverters.NtsPolygonToMongo(boundary);
+        this.Geometry = GeoConverters.NtsPolygonToMongo(boundary);
         this.Location = GeoJson.Point(GeoJson.Position(boundary.Centroid.X, boundary.Centroid.Y));
     }
 }
@@ -104,11 +115,11 @@ public class Zone
     public double[] Rates { get; set; }
     public string[] Products { get; set; }
     public GeoJsonPoint<GeoJson2DCoordinates> Location { get; set; }
-    public GeoJsonPolygon<GeoJson2DCoordinates> Boundary { get; set; }
+    public GeoJsonPolygon<GeoJson2DCoordinates> Geometry { get; set; }
 
     public Zone(string Name, double[] Rates, string[] Products, NetTopologySuite.Geometries.Polygon boundary)
     {
-        this.Boundary = GeoConverters.NtsPolygonToMongo(boundary);
+        this.Geometry = GeoConverters.NtsPolygonToMongo(boundary);
         this.Location = GeoJson.Point(GeoJson.Position(boundary.Centroid.X, boundary.Centroid.Y));
         this.Name = Name;
         this.Rates = Rates;
