@@ -26,7 +26,7 @@ public class APSIMBuilder
             sims.FindChild<Models.Storage.DataStore>().FileName = outName;
             //Change timing
             var clock = simulation.FindChild<Clock>();
-            clock.StartDate = new System.DateTime(2021, 05, 01, 0, 0, 0);
+            clock.StartDate = new System.DateTime(2022, 05, 01, 0, 0, 0);
             //clock.StartDate = new System.DateTime(1985, 05, 01, 0, 0, 0);
             clock.EndDate = System.DateTime.Today.AddDays(-1);
 
@@ -62,8 +62,8 @@ public class APSIMBuilder
             simField.Name = $"zone_{zoneidx}";
             var weather = simulation.FindChild<Weather>();
             //weather.FileName = @"..\weatherfiles\Dalby.met";
-            //weather.FileName = @"..\weatherfiles\Jokioinen.met";
-            weather.FileName = @"..\weatherfiles\Jokioinen_1985.met";
+            weather.FileName = @"..\weatherfiles\Jokioinen.met";
+            //weather.FileName = @"..\weatherfiles\Jokioinen_1985.met";
 
             var newSim = simulation.Clone();
             newSim.Name = $"zone_{zoneidx}";

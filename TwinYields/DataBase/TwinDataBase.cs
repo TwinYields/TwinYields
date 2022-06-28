@@ -38,6 +38,7 @@ public class TwinDataBase
     {
         db.DropCollection("Fields");
         db.DropCollection("Farms");
+        db.DropCollection("SimulationFiles");
         var collection = db.GetCollection<Field>("Fields");
         var idx1 = new CreateIndexModel<Field>(Builders<Field>.IndexKeys.Geo2DSphere("Location"));
         var idx2 = new CreateIndexModel<Field>(Builders<Field>.IndexKeys.Geo2DSphere("Zones.Location"));
@@ -47,14 +48,23 @@ public class TwinDataBase
 
     public void Insert(Field field)
     {
-        var collection = db.GetCollection<Field>("Fields");
-        collection.InsertOne(field);
+        this.Insert(field, "Fields");
     }
 
     public void Insert(Farm farm)
     {
-        var collection = db.GetCollection<Farm>("Farms");
-        collection.InsertOne(farm);
+        this.Insert(farm, "Farms");
+    }
+
+    public void Insert(SimulationFile simFile)
+    {
+        this.Insert(simFile, "SimulationFiles");
+    }
+
+    public void Insert<T>(T doc, string collection)
+    {
+        var col = db.GetCollection<T>(collection);
+        col.InsertOne(doc);
     }
 
     public Field FindField(string Name)
@@ -108,6 +118,7 @@ public class Field
         this.Location = GeoJson.Point(GeoJson.Position(boundary.Centroid.X, boundary.Centroid.Y));
     }
 }
+
 public class Zone
 {
     //public ObjectId Id { get; set; }
@@ -124,5 +135,18 @@ public class Zone
         this.Name = Name;
         this.Rates = Rates;
         this.Products = Products;
+    }
+}
+
+public class SimulationFile
+{
+    public ObjectId Id { get; set; }
+    public string Field { get; set; }
+    public string Path { get; set; }
+
+    public SimulationFile(string field, string path)
+    {
+        Field = field;
+        Path = path;
     }
 }

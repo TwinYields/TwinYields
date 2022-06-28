@@ -58,9 +58,6 @@ class Program
         field.FarmId = farm.Id;
         db.Insert(field);
 
-        Console.WriteLine("Done with DB");
-       
-
         //Test reading
         //var ofield = db.FindField(task.FieldName);
 
@@ -73,10 +70,13 @@ class Program
         Directory.CreateDirectory("simulations");
 
         string protopath = @"prototypes/WheatProto.apsimx";
-        string outName = "simulations/wheat_zones.apsimx";
+        string outName = $"simulations/wheat_zones_{task.FieldName}.apsimx";
         var sb = new APSIMBuilder();
         var simulations = sb.BuildSimulations(zones, protopath, outName);
+        db.Insert(new SimulationFile(task.FieldName, outName));
         //var simFiles = sb.BuildSimulationFiles(zones, protopath);
+
+        Console.WriteLine("Done with DB");
         return outName;
 
     }
