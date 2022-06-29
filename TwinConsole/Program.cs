@@ -19,15 +19,30 @@ class Program
 {
     static void Main(string[] args)
     {
-        string simFile = "simulations/wheat_zones.apsimx";
-        //if (args.Length == 0)
-        simFile = InitializeTwin();
-        Run(simFile);
-        Console.WriteLine("End");
+        //TODO get files from DB
+        string simFile = "simulations/wheat_zones_RVIII.apsimx";
+        var cmd = "";
+        if (args.Length > 0)
+            cmd = args[0];
+            
+        switch (cmd)
+        {
+            case "init":
+                simFile = InitializeTwin();
+                break;
+            case "run":
+                Run(simFile);
+                break;
+            default:
+                Console.WriteLine("No command provided, defaulting to run");
+                Run(simFile);
+                break;
+        }
     }
 
     static string InitializeTwin()
     {
+        Console.WriteLine("Initializing DigitalTwin from task data");
         //var importPath = "TASKDATA_20210603_0159";
         var importPath = "TASKDATA_20220520_0906";
         var task = new AdaptConverter(importPath);
