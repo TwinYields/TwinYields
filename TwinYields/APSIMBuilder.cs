@@ -28,7 +28,8 @@ public class APSIMBuilder
             var clock = simulation.FindChild<Clock>();
             clock.StartDate = new System.DateTime(2022, 05, 01, 0, 0, 0);
             //clock.StartDate = new System.DateTime(1985, 05, 01, 0, 0, 0);
-            clock.EndDate = System.DateTime.Today.AddDays(-1);
+            //clock.EndDate = System.DateTime.Today.AddDays(-1);
+            clock.EndDate = new System.DateTime(2022, 09, 01, 0, 0, 0);
 
             //Modify management actions
             var simField = simulation.FindChild<Zone>();
