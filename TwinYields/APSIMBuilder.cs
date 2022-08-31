@@ -51,7 +51,7 @@ public class APSIMBuilder
                         break;
                     case "Sow on a fixed date":
                         action.Parameters[1] = new KeyValuePair<string, string>("SowDate", "23-May");
-                        action.Parameters[2] = new KeyValuePair<string, string>("CultivarName", "Hartog");
+                        action.Parameters[2] = new KeyValuePair<string, string>("CultivarName", "WheatJarli");
                         break;
                     default:
                         break;

@@ -11,6 +11,7 @@ using Models.Storage;
 using System.Collections.Generic;
 using TwinYields.DataBase;
 using System.IO;
+using Models.PMF;
 
 namespace TwinConsole;
 
@@ -32,6 +33,9 @@ class Program
                 break;
             case "run":
                 Run(simFile);
+                break;
+            case "optim":
+                OptimizeParams(simFile);
                 break;
             default:
                 Console.WriteLine("No command provided, defaulting to run");
@@ -94,6 +98,27 @@ class Program
         Console.WriteLine("Done with DB");
         return outName;
 
+    }
+
+    static void OptimizeParams(string simFile)
+    {
+        var cmds = File.ReadAllLines("optim/cultivar.txt");
+        Console.WriteLine("Optimizing parameters!");
+        Simulations sims = FileFormat.ReadFromFile<Simulations>(simFile, e => throw e, false);
+        foreach (var sim in sims.FindAllChildren<Simulation>())
+        {
+            var zone = sim.FindChild<Models.Core.Zone>();
+            var cultivar = zone.Plants.First().FindChild<Cultivar>();
+            cultivar.Command = cmds;
+        }
+
+        var json = FileFormat.WriteToString(sims);
+        File.WriteAllText("optim/OptSim.apsimx", json);
+
+        var srunner = new Runner("optim/OptSim.apsimx");
+        srunner.Run();
+        srunner.DisposeStorage();
+        Console.WriteLine("Done running!");
     }
 
     static void Run(string simFile)
