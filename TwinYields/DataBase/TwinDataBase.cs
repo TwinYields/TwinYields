@@ -7,8 +7,6 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using MongoDB.Driver.GeoJsonObjectModel;
 using MongoDB.Bson.Serialization.Attributes;
-using NetTopologySuite;
-using NetTopologySuite.Geometries;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Conventions;
 
@@ -17,7 +15,7 @@ namespace TwinYields.DataBase;
 public class TwinDataBase
 {
     MongoClient dbClient;
-    MongoDatabaseBase db;
+    public MongoDatabaseBase db;
 
     public TwinDataBase()
     {
@@ -46,6 +44,11 @@ public class TwinDataBase
         iname = collection.Indexes.CreateOne(idx2);
     }
 
+    public void DropSimulationFiles()
+    {
+        db.DropCollection("SimulationFiles");
+    }
+
     public void Insert(Field field)
     {
         this.Insert(field, "Fields");
@@ -67,28 +70,18 @@ public class TwinDataBase
         col.InsertOne(doc);
     }
 
+    public List<Field> FindFields()
+    {
+        var collection = db.GetCollection<Field>("Fields");
+        var docs = collection.Find(new BsonDocument {}).ToList();
+        return docs;
+    }
+
     public Field FindField(string Name)
     {
         var collection = db.GetCollection<Field>("Fields");
-        var docs = collection.Find(new BsonDocument { { "Name", Name } }).ToList();
+        var docs = collection.Find(new BsonDocument { { "name", Name } }).ToList();
         return docs[0];
-    }
-
-}
-
-
-public static class GeoConverters{
-    public static GeoJsonPolygon<GeoJson2DCoordinates> NtsPolygonToMongo(Polygon poly)
-    {
-        var gf = NtsGeometryServices.Instance.CreateGeometryFactory(4326);
-        int N = poly.Coordinates.Count();
-        var mongocrds = new GeoJson2DCoordinates[N];
-        for (int i = 0; i < N; i++)
-        {
-            mongocrds[i] = GeoJson.Position(poly.Coordinates[i].X, poly.Coordinates[i].Y);
-        }
-        var polygon = GeoJson.Polygon(mongocrds);
-        return polygon;
     }
 }
 
@@ -111,12 +104,6 @@ public class Field
     public List<Zone> Zones;
     public ObjectId FarmId { get;set;}
 
-    public Field(string Name, NetTopologySuite.Geometries.Polygon boundary)
-    {
-        this.Name = Name;
-        this.Geometry = GeoConverters.NtsPolygonToMongo(boundary);
-        this.Location = GeoJson.Point(GeoJson.Position(boundary.Centroid.X, boundary.Centroid.Y));
-    }
 }
 
 public class Zone
@@ -127,15 +114,6 @@ public class Zone
     public string[] Products { get; set; }
     public GeoJsonPoint<GeoJson2DCoordinates> Location { get; set; }
     public GeoJsonPolygon<GeoJson2DCoordinates> Geometry { get; set; }
-
-    public Zone(string Name, double[] Rates, string[] Products, NetTopologySuite.Geometries.Polygon boundary)
-    {
-        this.Geometry = GeoConverters.NtsPolygonToMongo(boundary);
-        this.Location = GeoJson.Point(GeoJson.Position(boundary.Centroid.X, boundary.Centroid.Y));
-        this.Name = Name;
-        this.Rates = Rates;
-        this.Products = Products;
-    }
 }
 
 public class SimulationFile

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using NetTopologySuite.Features;
 using Models;
 using Models.Core;
 using Models.Core.ApsimFile;
@@ -12,7 +11,7 @@ public class APSIMBuilder
 {
     
     //Build APSIM Simulations in single .apsimx file for a field based on zones extracted from Taskfile
-    public Simulations BuildSimulations(FeatureCollection zones, string prototype, string outName)
+    public Simulations BuildSimulations(List<DataBase.Zone> zones, string prototype, string outName)
     {
         Simulations sims = FileFormat.ReadFromFile<Simulations>(prototype, e => throw e, false);
         //Get original simulation from prototype file
@@ -34,7 +33,8 @@ public class APSIMBuilder
             //Modify management actions
             var simField = simulation.FindChild<Zone>();
             var managementActions = simField.FindAllChildren<Manager>();
-            var fertilizer_kg = (double)zone.Attributes["rate"];
+            //var fertilizer_kg = (double)zone.Attributes["rate"];
+            var fertilizer_kg = zone.Rates[0];
             foreach (var action in managementActions)
             {
                 switch (action.Name)
@@ -82,7 +82,7 @@ public class APSIMBuilder
     }
 
     //Build APSIM Simulations as separate .apsimx file for a field based on zones extracted from Taskfile
-    public List<string> BuildSimulationFiles(FeatureCollection zones, string prototype, string outPath="simulations/wheat_")
+    public List<string> BuildSimulationFiles(List<DataBase.Zone> zones, string prototype, string outPath="simulations/wheat_")
     {
         Simulations sims = FileFormat.ReadFromFile<Simulations>(prototype, e => throw e, false);
         
@@ -92,7 +92,7 @@ public class APSIMBuilder
         Simulation simulation;
         foreach (var zone in zones)
         {
-            outName = outPath  + zone.Attributes["rate"] + ".apsimx";
+            outName = outPath  + zone.Rates[0] + ".apsimx";
             sims.FindChild<Simulation>().FileName = outName;
             sims.FindChild<Models.Storage.DataStore>().FileName = outName;
             simulation = sims.FindChild<Simulation>();
@@ -110,7 +110,7 @@ public class APSIMBuilder
                 switch (action.Name)
                 {
                     case "SowingFertiliser":
-                        action.Parameters[0] = new KeyValuePair<string, string>("Amount", zone.Attributes["rate"].ToString()); //TODO check units and match fertilizer types
+                        action.Parameters[0] = new KeyValuePair<string, string>("Amount", zone.Rates[0].ToString()); //TODO check units and match fertilizer types
                         break;
                     case "Sow on a fixed date":
                         action.Parameters[1] = new KeyValuePair<string, string>("SowDate", "23-May");

@@ -1,8 +1,6 @@
 ﻿using System;
 using TwinYields;
 using System.Linq;
-using NetTopologySuite;
-using NetTopologySuite.Geometries;
 using Models;
 using Models.Core;
 using Models.Core.ApsimFile;
@@ -23,13 +21,15 @@ class Program
         //TODO get files from DB
         string simFile = "simulations/wheat_zones_RVIII.apsimx";
         var cmd = "";
+
         if (args.Length > 0)
             cmd = args[0];
-            
+
+        //cmd = "init";
         switch (cmd)
         {
             case "init":
-                simFile = InitializeTwin();
+                var status = InitializeTwin();
                 break;
             case "run":
                 Run(simFile);
@@ -44,60 +44,29 @@ class Program
         }
     }
 
-    static string InitializeTwin()
+    static bool InitializeTwin()
     {
-        Console.WriteLine("Initializing DigitalTwin from task data");
-        //var importPath = "TASKDATA_20210603_0159";
-        var importPath = "TASKDATA_20220520_0906";
-        var task = new AdaptConverter(importPath);
-        
-        var rates = task.VectorizePrescription();
-        //string time = DateTime.Now.ToString("hh_mm_ss");
-        //task.RasterizePrescription($"geoms/rasters/{task.FieldName}_{time}.tiff");
-        var zones = task.PrescriptionZones();
-
-        //Serialize the zones to GeoJSON
-        //AdaptConverter.SaveJSON(zones, "geoms/zones.json");
-        //AdaptConverter.SaveJSON(task.FieldBoundary, "geoms/field.json");
-        //Can be rasterized using gdal: gdal_rasterize -a rate -ot Int16 -ts 1000 1000 rates.json zones.tif
-        //AdaptConverter.SaveJSON(rates, "geoms/rates.json");
-
-        //Save field information to database
-
+        Console.WriteLine("Initializing DigitalTwin from database");
         var db = new TwinDataBase();
-        db.DropAll();
-        var farm = new Farm("Jokioinen SmartFarm");
-        db.Insert(farm);
-        var field = new Field(task.FieldName, task.FieldBoundary);
-        field.Zones = zones.Select((z, i) => 
-                            new TwinYields.DataBase.Zone($"zone{i}", 
-                            new double[] { (double)z.Attributes["rate"] }, //TODO get all rates and product types
-                            task.Products,
-                            (Polygon)z.Geometry)).ToList();
-        field.FarmId = farm.Id;
-        db.Insert(field);
+        db.DropSimulationFiles();
+        var Fields = db.FindFields();
+        
+        foreach (var field in Fields)
+        {
+            var zones = field.Zones;
+            Directory.CreateDirectory("simulations");
+            Console.WriteLine($"\t Processing field: {field.Name}");
 
-        //Test reading
-        //var ofield = db.FindField(task.FieldName);
+            string protopath = @"prototypes/WheatProto.apsimx";
+            string outName = $"simulations/wheat_zones_{field.Name}.apsimx";
 
-        //TODO extract variable rates from operations
-        //var operations = task.GroupOperations();
+            var sb = new APSIMBuilder();
+            var simulations = sb.BuildSimulations(zones, protopath, outName);
+            db.Insert(new SimulationFile(field.Name, outName));
+        }
 
-        Console.WriteLine("Done with taskfile");
-        //Convert to APSIM simulations
-        //Directory.Delete("simulations", true);
-        Directory.CreateDirectory("simulations");
-
-        string protopath = @"prototypes/WheatProto.apsimx";
-        string outName = $"simulations/wheat_zones_{task.FieldName}.apsimx";
-        var sb = new APSIMBuilder();
-        var simulations = sb.BuildSimulations(zones, protopath, outName);
-        db.Insert(new SimulationFile(task.FieldName, outName));
-        //var simFiles = sb.BuildSimulationFiles(zones, protopath);
-
-        Console.WriteLine("Done with DB");
-        return outName;
-
+        Console.WriteLine("Initializion complete");
+        return true;
     }
 
     static void OptimizeParams(string simFile)
