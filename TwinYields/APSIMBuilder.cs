@@ -9,7 +9,7 @@ namespace TwinYields;
 
 public class APSIMBuilder
 {
-    
+
     //Build APSIM Simulations in single .apsimx file for a field based on zones extracted from Taskfile
     public Simulations BuildSimulations(List<DataBase.Zone> zones, string prototype, string outName)
     {
@@ -25,10 +25,10 @@ public class APSIMBuilder
             sims.FindChild<Models.Storage.DataStore>().FileName = outName;
             //Change timing
             var clock = simulation.FindChild<Clock>();
-            clock.StartDate = new System.DateTime(2022, 05, 01, 0, 0, 0);
+            clock.StartDate = new System.DateTime(2022, 04, 01, 0, 0, 0);
             //clock.StartDate = new System.DateTime(1985, 05, 01, 0, 0, 0);
             //clock.EndDate = System.DateTime.Today.AddDays(-1);
-            clock.EndDate = new System.DateTime(2022, 09, 01, 0, 0, 0);
+            clock.EndDate = new System.DateTime(2022, 10, 01, 0, 0, 0);
 
             //Modify management actions
             var simField = simulation.FindChild<Zone>();
@@ -72,12 +72,12 @@ public class APSIMBuilder
             sims.Children.Add(newSim);
             zoneidx++;
         }
-        
+
         //Remove the unmodified simulation
         sims.Children.Remove(simulation);
         var json = FileFormat.WriteToString(sims);
         File.WriteAllText(outName, json);
-        
+
         return sims;
     }
 
@@ -85,7 +85,7 @@ public class APSIMBuilder
     public List<string> BuildSimulationFiles(List<DataBase.Zone> zones, string prototype, string outPath="simulations/wheat_")
     {
         Simulations sims = FileFormat.ReadFromFile<Simulations>(prototype, e => throw e, false);
-        
+
         string json;
         string outName;
         var simFiles = new List<string>();
@@ -129,6 +129,6 @@ public class APSIMBuilder
 
         return simFiles;
     }
-    
-    
+
+
 }
