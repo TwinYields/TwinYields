@@ -60,14 +60,14 @@ public class APSIMBuilder
                 //Console.WriteLine(action.Name);
             }
 
-            simField.Name = $"zone_{zoneidx}";
+            simField.Name = zone.Name;
             var weather = simulation.FindChild<Weather>();
             //weather.FileName = @"..\weatherfiles\Dalby.met";
             weather.FileName = @"..\weatherfiles\Jokioinen.met";
             //weather.FileName = @"..\weatherfiles\Jokioinen_1985.met";
 
             var newSim = simulation.Clone();
-            newSim.Name = $"zone_{zoneidx}";
+            newSim.Name = zone.Name;
             newSim.FileName = outName;
             sims.Children.Add(newSim);
             zoneidx++;
